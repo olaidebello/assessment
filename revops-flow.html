@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RevOps Pipeline Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --surface: #fafafa;
+    --surface-2: #f4f4f4;
+    --border: #e8e8e8;
+    --border-strong: #d0d0d0;
+    --text-1: #111111;
+    --text-2: #444444;
+    --text-3: #888888;
+
+    --rust: #c4431a;
+    --rust-bg: #fdf1ec;
+    --rust-border: #f5c5b0;
+
+    --sage: #3d5a4c;
+    --sage-bg: #edf3ef;
+    --sage-border: #b5cfc0;
+
+    --gold: #b8923a;
+    --gold-bg: #fdf6e8;
+    --gold-border: #f0d8a0;
+
+    --blue: #1d4ed8;
+    --blue-bg: #eff4ff;
+    --blue-border: #bfcffe;
+
+    --violet: #6d28d9;
+    --violet-bg: #f5f0ff;
+    --violet-border: #d8b4fe;
+
+    --slate: #475569;
+    --slate-bg: #f8fafc;
+    --slate-border: #cbd5e1;
+
+    --radius: 10px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 52px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    max-width: 560px;
+  }
+
+  .header-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 14px;
+  }
+
+  header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-3);
+    line-height: 1.7;
+  }
+
+  /* FLOW WRAPPER */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 660px;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    margin-top: 8px;
+  }
+
+  .section-label-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+
+  .section-label-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+
+  .section-label-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* NODE */
+  .node {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.16s, border-color 0.16s, background 0.16s, transform 0.13s;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .node:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  .node.active { transform: translateY(0); }
+
+  .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 18px;
+    gap: 12px;
+    user-select: none;
+  }
+
+  .node-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .node-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .node-text { flex: 1; min-width: 0; }
+
+  .node-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-1);
+    letter-spacing: -0.1px;
+    line-height: 1.3;
+  }
+
+  .node-sub {
+    font-size: 11.5px;
+    color: var(--text-3);
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .node-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+
+  .chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--text-3);
+    transition: transform 0.2s, color 0.16s;
+    flex-shrink: 0;
+  }
+
+  .node.active .chevron {
+    transform: rotate(180deg);
+    color: var(--text-2);
+  }
+
+  /* NODE BODY */
+  .node-body {
+    display: none;
+    padding: 0 18px 18px 64px;
+    border-top: 1.5px solid var(--border);
+  }
+
+  .node.active .node-body { display: block; }
+
+  .node-body-intro {
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--text-2);
+    padding-top: 14px;
+    margin-bottom: 12px;
+  }
+
+  .node-body ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .node-body li {
+    font-size: 12.5px;
+    color: var(--text-2);
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    line-height: 1.55;
+  }
+
+  .node-body li .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  .node-body .warn {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text-2);
+    border-left: 3px solid;
+  }
+
+  .node-body .warn.critical { background: var(--rust-bg); border-color: var(--rust); color: #7a1f06; }
+  .node-body .warn.high { background: var(--gold-bg); border-color: var(--gold); color: #6b4a0e; }
+  .node-body .warn.note { background: var(--gold-bg); border-color: var(--gold); color: #5a4010; }
+
+  /* CRITICAL LEFT BORDER */
+  .node.critical { border-left: 3px solid var(--rust); }
+
+  /* CONNECTOR */
+  .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 30px;
+  }
+
+  .connector-line {
+    width: 1.5px;
+    flex: 1;
+    background: var(--border);
+  }
+
+  .connector-arrow {
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid var(--border-strong);
+    border-bottom: 1.5px solid var(--border-strong);
+    transform: rotate(45deg);
+    margin-bottom: 3px;
+  }
+
+  /* SPLIT / MERGE */
+  .split-svg, .merge-svg {
+    width: 100%;
+    height: 36px;
+  }
+
+  /* BRANCH ROW */
+  .branch-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  /* LIFECYCLE TRACK (horizontal sub-section) */
+  .lc-track {
+    width: 100%;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .lc-cell {
+    flex: 1;
+    min-width: 100px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 12px;
+  }
+
+  .lc-cell.active {
+    background: var(--text-1);
+    border-color: var(--text-1);
+  }
+
+  .lc-cell .lc-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--border-strong);
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+
+  .lc-cell.active .lc-num { color: rgba(255,255,255,0.15); }
+
+  .lc-cell .lc-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 5px;
+    color: var(--text-1);
+  }
+
+  .lc-cell.active .lc-name { color: #fff; }
+
+  .lc-cell .lc-trigger {
+    font-size: 10.5px;
+    color: var(--text-3);
+    line-height: 1.55;
+    margin-bottom: 7px;
+  }
+
+  .lc-cell.active .lc-trigger { color: rgba(255,255,255,0.5); }
+
+  .lc-cell .lc-owner {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .owner-mkt { color: var(--sage); }
+  .owner-shared { color: var(--gold); }
+  .owner-sales { color: var(--rust); }
+  .lc-cell.active .lc-owner { color: rgba(255,255,255,0.4); }
+
+  /* COLOR VARIANTS */
+  .node.rust .node-icon { background: var(--rust-bg); }
+  .node.rust.active { background: var(--rust-bg); border-color: var(--rust-border); }
+  .node.rust.active .node-title { color: var(--rust); }
+  .node.rust.active .node-body { border-top-color: var(--rust-border); }
+  .node.rust.active .dot { background: var(--rust); }
+
+  .node.sage .node-icon { background: var(--sage-bg); }
+  .node.sage.active { background: var(--sage-bg); border-color: var(--sage-border); }
+  .node.sage.active .node-title { color: var(--sage); }
+  .node.sage.active .node-body { border-top-color: var(--sage-border); }
+  .node.sage.active .dot { background: var(--sage); }
+
+  .node.gold .node-icon { background: var(--gold-bg); }
+  .node.gold.active { background: var(--gold-bg); border-color: var(--gold-border); }
+  .node.gold.active .node-title { color: var(--gold); }
+  .node.gold.active .node-body { border-top-color: var(--gold-border); }
+  .node.gold.active .dot { background: var(--gold); }
+
+  .node.blue .node-icon { background: var(--blue-bg); }
+  .node.blue.active { background: var(--blue-bg); border-color: var(--blue-border); }
+  .node.blue.active .node-title { color: var(--blue); }
+  .node.blue.active .node-body { border-top-color: var(--blue-border); }
+  .node.blue.active .dot { background: var(--blue); }
+
+  .node.violet .node-icon { background: var(--violet-bg); }
+  .node.violet.active { background: var(--violet-bg); border-color: var(--violet-border); }
+  .node.violet.active .node-title { color: var(--violet); }
+  .node.violet.active .node-body { border-top-color: var(--violet-border); }
+  .node.violet.active .dot { background: var(--violet); }
+
+  .node.slate .node-icon { background: var(--slate-bg); }
+  .node.slate.active { background: var(--slate-bg); border-color: var(--slate-border); }
+  .node.slate.active .node-title { color: var(--slate); }
+  .node.slate.active .node-body { border-top-color: var(--slate-border); }
+  .node.slate.active .dot { background: var(--slate); }
+
+  @media (max-width: 560px) {
+    .branch-row { grid-template-columns: 1fr; }
+    .lc-track { flex-wrap: wrap; }
+    .lc-cell { min-width: 44%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Revenue Operations · Stack Assessment</div>
+  <h1>RevOps Pipeline Flow</h1>
+  <p>Full-funnel architecture from first ad click to closed deal and attribution feedback. Click any node to expand.</p>
+</header>
+
+<div class="flow">
+
+  <!-- ======== SECTION 1: CAPTURE ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">01</span>
+    <span class="section-label-text">Capture</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- Traffic Sources -->
+  <div class="node rust" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">📡</div>
+        <div class="node-text">
+          <div class="node-title">Traffic sources</div>
+          <div class="node-sub">Meta Ads / Outbound</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:var(--rust-bg);color:var(--rust);border-color:var(--rust-border)">Top of funnel</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">Every lead begins here. Meta Ads and outbound channels drive traffic into the capture layer. Each source must be UTM-tagged at the campaign, ad set, and ad level so attribution does not break downstream.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--rust)"></span>Meta Ads (Facebook and Instagram) targeting your ICP with UTM parameters on every link</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Outbound via cold email or LinkedIn feeding directly into GHL with source tagged</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Missing UTMs at this layer is the first place Meta attribution breaks</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Conversions API (CAPI) must be active alongside the Meta Pixel post-iOS 14</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- Lovable Form -->
+  <div class="node blue" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">🎯</div>
+        <div class="node-text">
+          <div class="node-title">Lead capture layer</div>
+          <div class="node-sub">Lovable (Forms / Pages)</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)">Intake</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">The face of the stack. Landing pages and forms built in Lovable convert ad traffic into form submissions. The moment a form is submitted, a webhook fires and the automation chain begins.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--blue)"></span>Custom landing pages per campaign or audience segment</li>
+        <li><span class="dot" style="background:var(--blue)"></span>Forms capture contact info, intent, and qualifying responses</li>
+        <li><span class="dot" style="background:var(--blue)"></span>Meta Pixel fires on the thank-you page to register a lead event</li>
+        <li><span class="dot" style="background:var(--blue)"></span>Webhook endpoint must be updated after every Lovable redeploy or leads go into a black hole</li>
+      </ul>
+      <div class="warn critical">Critical risk: if the webhook URL goes stale after a Lovable redeploy, Make never receives the submission. No alert fires. Leads disappear silently.</div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- ======== SECTION 2: ENRICH ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">02</span>
+    <span class="section-label-text">Enrich</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- Make / Ingestion -->
+  <div class="node gold critical" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">⚙️</div>
+        <div class="node-text">
+          <div class="node-title">Ingestion and normalization</div>
+          <div class="node-sub">Make (connective tissue, not the brain)</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:#fde8e1;color:var(--rust);border-color:var(--rust-border)">Critical</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">Make is the nervous system, not the brain. Its job is three things: receive Lovable webhooks and standardise the payload, run deduplication before anything hits GHL, and fire bidirectional sync events when deals close. Keep each scenario single-purpose.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--gold)"></span>Deduplication: checks for existing contacts by email before creating a new record</li>
+        <li><span class="dot" style="background:var(--gold)"></span>Field mapping: normalises form responses into the exact custom field names GHL expects</li>
+        <li><span class="dot" style="background:var(--gold)"></span>Source attribution: stamps each contact with campaign, ad set, ad, and offer at creation time</li>
+        <li><span class="dot" style="background:var(--gold)"></span>On deal close, fires a Meta CAPI conversion event back to the ad platform</li>
+        <li><span class="dot" style="background:var(--gold)"></span>Every scenario must have error handling. Scenarios that silently fail on edge cases are the same as no scenario</li>
+      </ul>
+      <div class="warn high">High risk: UTM data captured in the URL but not mapped to GHL custom fields means no ROI attribution and no source context for sales. This is one of the most common and invisible failures in this stack type.</div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- GHL CRM -->
+  <div class="node violet" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">🗂️</div>
+        <div class="node-text">
+          <div class="node-title">CRM (single source of truth)</div>
+          <div class="node-sub">GoHighLevel (GHL)</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:var(--violet-bg);color:var(--violet);border-color:var(--violet-border)">Core</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">GHL is the brain. Every platform feeds GHL. GHL never feeds another system as a secondary record. If it is not in GHL, it did not happen. The contact record created here carries the full context every rep needs before their first call.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--violet)"></span>Lead source and campaign (which Meta ad, which offer)</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Form responses (what they said they need)</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Full engagement history (every email open, link click, page visit)</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Lead score updated dynamically on each engagement event</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Audit check: custom fields populated consistently, no orphaned workflows, no duplicate contacts with the same email on different IDs</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- ======== SECTION 3: NURTURE ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">03</span>
+    <span class="section-label-text">Nurture</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- GHL Workflow Nurture -->
+  <div class="node sage" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">✉️</div>
+        <div class="node-text">
+          <div class="node-title">Nurture sequence</div>
+          <div class="node-sub">GHL Workflow / Automations</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:var(--sage-bg);color:var(--sage);border-color:var(--sage-border)">Marketing owns</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">The moment a contact is created in GHL, the workflow fires. Lead enters the pipeline at "Raw Lead" and the nurture sequence begins immediately. Every engagement event updates the lead score and moves the contact closer to the MQL threshold.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--sage)"></span>Immediate auto-reply via SMS and email on form submission</li>
+        <li><span class="dot" style="background:var(--sage)"></span>Staged nurture sequence runs until the lead engages or exits</li>
+        <li><span class="dot" style="background:var(--sage)"></span>Lead score increments on email opens, link clicks, replies, and page visits</li>
+        <li><span class="dot" style="background:var(--sage)"></span>SLA timers and escalation alerts enforce response time commitments</li>
+        <li><span class="dot" style="background:var(--sage)"></span>If unresponsive after 3 sales attempts: return to nurture, do not discard the lead</li>
+      </ul>
+      <div class="warn high">High risk: duplicate automations built by different people responding to the same trigger. A lead receiving three emails in ten minutes is a sign of overlapping workflows. Audit before adding new ones.</div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- ======== SECTION 4: QUALIFY ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">04</span>
+    <span class="section-label-text">Qualify</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- Qualification / MQL -->
+  <div class="node gold critical" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">📊</div>
+        <div class="node-text">
+          <div class="node-title">Lifecycle and qualification</div>
+          <div class="node-sub">Raw Lead → MQL → SQL → Opportunity</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:#fde8e1;color:var(--rust);border-color:var(--rust-border)">Critical</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">The MQL stage is the most important to define precisely. Every team disagreement about what counts as a qualified lead lives here. Define it by behaviour, not gut feel. Make the trigger an automation condition in GHL, not a human judgment call.</p>
+
+      <!-- Lifecycle track inline -->
+      <div class="lc-track" style="margin:14px 0 16px">
+        <div class="lc-cell">
+          <div class="lc-num">01</div>
+          <div class="lc-name">Raw Lead</div>
+          <div class="lc-trigger">Form submitted. Contact created in GHL via Make.</div>
+          <div class="lc-owner owner-mkt">Marketing</div>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-num">02</div>
+          <div class="lc-name">Engaged</div>
+          <div class="lc-trigger">Opened email, clicked link, or replied to SMS.</div>
+          <div class="lc-owner owner-mkt">Marketing</div>
+        </div>
+        <div class="lc-cell active">
+          <div class="lc-num">03</div>
+          <div class="lc-name">MQL</div>
+          <div class="lc-trigger">Score threshold hit OR high-intent action (pricing page, booking attempt).</div>
+          <div class="lc-owner owner-shared">Shared (handoff zone)</div>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-num">04</div>
+          <div class="lc-name">SQL</div>
+          <div class="lc-trigger">Rep confirmed fit and interest after first contact.</div>
+          <div class="lc-owner owner-sales">Sales</div>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-num">05</div>
+          <div class="lc-name">Opportunity</div>
+          <div class="lc-trigger">Proposal sent or discovery call completed.</div>
+          <div class="lc-owner owner-sales">Sales</div>
+        </div>
+        <div class="lc-cell">
+          <div class="lc-num">06</div>
+          <div class="lc-name">Closed</div>
+          <div class="lc-trigger">Won or Lost. Attribution sync fires back to Meta.</div>
+          <div class="lc-owner owner-sales">Sales</div>
+        </div>
+      </div>
+
+      <ul>
+        <li><span class="dot" style="background:var(--gold)"></span>Define MQL in writing and get both marketing and sales to sign off on the same definition</li>
+        <li><span class="dot" style="background:var(--gold)"></span>Without defined exit criteria per stage, leads enter the pipeline and never move</li>
+        <li><span class="dot" style="background:var(--gold)"></span>Every stage transition should trigger an automation, not a manual task</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Split into two branches: Handoff -->
+  <svg class="split-svg" viewBox="0 0 660 36" preserveAspectRatio="none">
+    <line x1="330" y1="0" x2="330" y2="18" stroke="#e8e8e8" stroke-width="1.5"/>
+    <line x1="330" y1="18" x2="162" y2="36" stroke="#e8e8e8" stroke-width="1.5"/>
+    <line x1="330" y1="18" x2="498" y2="36" stroke="#e8e8e8" stroke-width="1.5"/>
+  </svg>
+
+  <!-- ======== SECTION 5: HANDOFF ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">05</span>
+    <span class="section-label-text">Handoff</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <div class="branch-row">
+
+    <!-- Marketing Delivers -->
+    <div class="node sage" onclick="toggle(this)">
+      <div class="node-header">
+        <div class="node-left">
+          <div class="node-icon">📤</div>
+          <div class="node-text">
+            <div class="node-title">Marketing delivers</div>
+            <div class="node-sub">Context-complete handoff</div>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+      <div class="node-body" style="padding-left:18px">
+        <p class="node-body-intro">Marketing owns the lead until the MQL threshold is hit. At handoff, the contact record must be complete.</p>
+        <ul>
+          <li><span class="dot" style="background:var(--sage)"></span>All custom fields mapped: source, campaign, offer, form responses</li>
+          <li><span class="dot" style="background:var(--sage)"></span>Lead score at or above the agreed threshold before pushing to sales</li>
+          <li><span class="dot" style="background:var(--sage)"></span>At least one meaningful engagement logged (open, click, or reply)</li>
+          <li><span class="dot" style="background:var(--sage)"></span>Nurture sequence paused at handoff. Sales owns all comms from here.</li>
+          <li><span class="dot" style="background:var(--sage)"></span>Slack or GHL notification sent to assigned rep with a context summary</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Sales Commits -->
+    <div class="node rust" onclick="toggle(this)">
+      <div class="node-header">
+        <div class="node-left">
+          <div class="node-icon">📞</div>
+          <div class="node-text">
+            <div class="node-title">Sales commits</div>
+            <div class="node-sub">SLA-enforced contact</div>
+          </div>
+        </div>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+      <div class="node-body" style="padding-left:18px">
+        <p class="node-body-intro">Sales receives full context. A lead contacted within 5 minutes is 9x more likely to convert than one contacted after 30. The SLA timer starts at handoff.</p>
+        <ul>
+          <li><span class="dot" style="background:var(--rust)"></span>First contact attempt within 5 minutes of handoff notification</li>
+          <li><span class="dot" style="background:var(--rust)"></span>Review the full activity timeline before dialling. No "how did you hear about us" questions.</li>
+          <li><span class="dot" style="background:var(--rust)"></span>Stage updated in GHL within 30 minutes of contact attempt</li>
+          <li><span class="dot" style="background:var(--rust)"></span>All call notes logged to the contact record. Nothing lives in memory or notebooks.</li>
+          <li><span class="dot" style="background:var(--rust)"></span>After 3 failed attempts: return lead to nurture workflow, do not discard</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Merge back -->
+  <svg class="merge-svg" viewBox="0 0 660 36" preserveAspectRatio="none">
+    <line x1="162" y1="0" x2="330" y2="22" stroke="#e8e8e8" stroke-width="1.5"/>
+    <line x1="498" y1="0" x2="330" y2="22" stroke="#e8e8e8" stroke-width="1.5"/>
+    <line x1="330" y1="22" x2="330" y2="36" stroke="#e8e8e8" stroke-width="1.5"/>
+    <polyline points="323,30 330,36 337,30" fill="none" stroke="#d0d0d0" stroke-width="1.5"/>
+  </svg>
+
+  <!-- ======== SECTION 6: CLOSE ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">06</span>
+    <span class="section-label-text">Close</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- Pipeline / Deals -->
+  <div class="node violet" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">💼</div>
+        <div class="node-text">
+          <div class="node-title">Pipeline (GHL Deals)</div>
+          <div class="node-sub">Contacted → Qualified → Proposal → Closed</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:var(--violet-bg);color:var(--violet);border-color:var(--violet-border)">Deals</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">The active deal board where every opportunity is tracked in real time. Stage movement here is what closes the attribution loop back to Meta.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--violet)"></span>Contacted: first outreach made, SLA timer started, stage set to SQL / In Contact</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Qualified: confirmed fit after discovery, sales owns the conversation fully</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Proposal: offer or pricing sent, deal record active in GHL</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Closed Won: deal signed, revenue attributed, Make fires reporting update</li>
+        <li><span class="dot" style="background:var(--violet)"></span>Closed Lost: outcome recorded with a loss reason. Loss reasons feed directly into marketing insights.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-line"></div><div class="connector-arrow"></div></div>
+
+  <!-- ======== SECTION 7: FEEDBACK LOOP ======== -->
+  <div class="section-label" style="width:100%">
+    <span class="section-label-num">07</span>
+    <span class="section-label-text">Feedback Loop</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- Feedback Loop -->
+  <div class="node rust critical" onclick="toggle(this)">
+    <div class="node-header">
+      <div class="node-left">
+        <div class="node-icon">🔁</div>
+        <div class="node-text">
+          <div class="node-title">Closed-loop attribution</div>
+          <div class="node-sub">Revenue back to Meta via Make and CAPI</div>
+        </div>
+      </div>
+      <div class="node-right">
+        <span class="badge" style="background:#fde8e1;color:var(--rust);border-color:var(--rust-border)">Critical</span>
+        <svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="node-body">
+      <p class="node-body-intro">Without this layer, you are flying blind on what is actually working. Meta needs to know what happened to the leads it sent. CAPI conversion events from closed deals train the algorithm to find better prospects. This is non-negotiable.</p>
+      <ul>
+        <li><span class="dot" style="background:var(--rust)"></span>When a deal closes in GHL, Make fires a Meta CAPI conversion event immediately</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Revenue is attributed back to the originating campaign, ad set, and ad</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Loss reasons from GHL become marketing insights that improve targeting and messaging</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Stage-by-stage conversion data surfaces which lifecycle stage is leaking leads</li>
+        <li><span class="dot" style="background:var(--rust)"></span>Can you tie closed revenue to a specific Meta campaign? If not, this layer is missing or broken.</li>
+      </ul>
+      <div class="warn note">Make's role here: when a deal closes in GHL, Make pushes a conversion event back to Meta for campaign optimisation. This is the highest-ROI automation in the entire stack and the one most commonly skipped.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function toggle(el) {
+    el.classList.toggle('active');
+  }
+</script>
+
+</body>
+</html>
